@@ -12,7 +12,7 @@ public class Producto extends BaseEntity {
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String descripcion;
 
-    @Column(unique = true)
+    @Column(name = "codigobarras", unique = true)
     private String codigoBarras;
 
     @Column(nullable = false, precision = 10, scale = 2)
