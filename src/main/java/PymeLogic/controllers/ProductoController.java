@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.ArrayList;
 
 @Controller
 @RequestMapping("/productos")
@@ -30,8 +29,9 @@ public class ProductoController {
             logger.info("Productos encontrados: {}", productos.size());
             
             if (productos.isEmpty()) {
-                logger.info("No hay productos en la base de datos. Creando productos de ejemplo...");
-                productos = crearProductosEjemplo();
+                logger.info("No hay productos en la base de datos");
+            } else {
+                logger.info("Productos recuperados correctamente. Primer producto: {}", productos.get(0).getNombre());
             }
             
             model.addAttribute("productos", productos);
@@ -59,6 +59,14 @@ public class ProductoController {
                                 @RequestParam(required = false) Integer limiteMinimo,
                                 RedirectAttributes redirectAttributes) {
         try {
+            logger.info("Iniciando guardado de producto - Datos recibidos:");
+            logger.info("Nombre: {}", nombre);
+            logger.info("Código de barras: {}", codigoBarras);
+            logger.info("Precio: {}", precio);
+            logger.info("Stock: {}", stock);
+            logger.info("Categoría: {}", categoria);
+            logger.info("Límite mínimo: {}", limiteMinimo);
+            
             Producto producto = new Producto();
             producto.setNombre(nombre);
             producto.setDescripcion(descripcion);
@@ -68,60 +76,32 @@ public class ProductoController {
             producto.setCategoria(categoria);
 
             if (limiteMinimo != null) {
+                logger.info("Configurando límite de stock mínimo: {}", limiteMinimo);
                 LimiteStock limite = new LimiteStock();
                 limite.setLimiteMinimo(limiteMinimo);
+                // Establecemos un límite máximo por defecto (2 veces el límite mínimo)
+                limite.setLimiteMaximo(limiteMinimo * 2);
                 limite.setProducto(producto);
                 producto.setLimiteStock(limite);
             }
 
-            productoRepository.save(producto);
-            redirectAttributes.addFlashAttribute("mensaje", "Producto guardado exitosamente");
+            producto = productoRepository.save(producto);
+            logger.info("Producto guardado exitosamente con ID: {}", producto.getId());
+            
+            redirectAttributes.addFlashAttribute("mensaje", "Producto '" + nombre + "' guardado exitosamente");
             return "redirect:/productos";
         } catch (Exception e) {
             logger.error("Error al guardar el producto: {}", e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("error", "Error al guardar el producto: " + e.getMessage());
+            logger.error("Causa del error: ", e);
+            
+            String mensajeError = e.getMessage();
+            if (e.getCause() != null) {
+                mensajeError += " - Causa: " + e.getCause().getMessage();
+            }
+            
+            redirectAttributes.addFlashAttribute("error", "Error al guardar el producto: " + mensajeError);
             return "redirect:/productos/nuevo";
         }
-    }
-
-    private List<Producto> crearProductosEjemplo() {
-        List<Producto> productos = new ArrayList<>();
-        try {
-            Producto p1 = new Producto();
-            p1.setNombre("Producto Ejemplo 1");
-            p1.setDescripcion("Descripción del producto 1");
-            p1.setCodigoBarras("123456789");
-            p1.setPrecio(new BigDecimal("19.99"));
-            p1.setStock(10);
-            p1.setCategoria("Ejemplo");
-            
-            LimiteStock limite1 = new LimiteStock();
-            limite1.setLimiteMinimo(5);
-            limite1.setProducto(p1);
-            p1.setLimiteStock(limite1);
-            
-            Producto p2 = new Producto();
-            p2.setNombre("Producto Ejemplo 2");
-            p2.setDescripcion("Descripción del producto 2");
-            p2.setCodigoBarras("987654321");
-            p2.setPrecio(new BigDecimal("29.99"));
-            p2.setStock(5);
-            p2.setCategoria("Ejemplo");
-            
-            LimiteStock limite2 = new LimiteStock();
-            limite2.setLimiteMinimo(3);
-            limite2.setProducto(p2);
-            p2.setLimiteStock(limite2);
-            
-            productoRepository.save(p1);
-            productoRepository.save(p2);
-            
-            productos = productoRepository.findAll();
-            logger.info("Productos de ejemplo creados exitosamente");
-        } catch (Exception e) {
-            logger.error("Error al crear productos de ejemplo: {}", e.getMessage(), e);
-        }
-        return productos;
     }
 
     @GetMapping("/stock-bajo")
@@ -130,5 +110,33 @@ public class ProductoController {
         model.addAttribute("productos", productosStockBajo);
         model.addAttribute("titulo", "Productos con Stock Bajo");
         return "productos/lista";
+    }
+
+    @GetMapping("/editar/{id}")
+    public String mostrarFormularioEditar(@PathVariable Long id, Model model) {
+        try {
+            Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            model.addAttribute("producto", producto);
+            return "productos/form";
+        } catch (Exception e) {
+            logger.error("Error al cargar el producto para editar: {}", e.getMessage(), e);
+            return "redirect:/productos";
+        }
+    }
+
+    @GetMapping("/eliminar/{id}")
+    public String eliminarProducto(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            productoRepository.delete(producto);
+            redirectAttributes.addFlashAttribute("mensaje", "Producto eliminado exitosamente");
+        } catch (Exception e) {
+            logger.error("Error al eliminar el producto: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Error al eliminar el producto: " + e.getMessage());
+        }
+        return "redirect:/productos";
     }
 }
