@@ -49,10 +49,16 @@ public class ProductoController {
         return "productos/form";
     }
 
+    private String generarCodigoBarras() {
+        // Generar un código de barras único basado en timestamp y número aleatorio
+        long timestamp = System.currentTimeMillis();
+        int random = (int) (Math.random() * 1000);
+        return String.format("%d%03d", timestamp, random);
+    }
+
     @PostMapping("/guardar")
     public String guardarProducto(@RequestParam String nombre,
                                 @RequestParam String descripcion,
-                                @RequestParam String codigoBarras,
                                 @RequestParam BigDecimal precio,
                                 @RequestParam Integer stock,
                                 @RequestParam(required = false) String categoria,
@@ -61,13 +67,15 @@ public class ProductoController {
         try {
             logger.info("Iniciando guardado de producto - Datos recibidos:");
             logger.info("Nombre: {}", nombre);
-            logger.info("Código de barras: {}", codigoBarras);
             logger.info("Precio: {}", precio);
             logger.info("Stock: {}", stock);
             logger.info("Categoría: {}", categoria);
             logger.info("Límite mínimo: {}", limiteMinimo);
             
             Producto producto = new Producto();
+            String codigoBarras = generarCodigoBarras();
+            logger.info("Código de barras generado: {}", codigoBarras);
+            
             producto.setNombre(nombre);
             producto.setDescripcion(descripcion);
             producto.setCodigoBarras(codigoBarras);
