@@ -46,7 +46,22 @@ public class ProductoController {
     @GetMapping("/nuevo")
     public String mostrarFormulario(Model model) {
         model.addAttribute("producto", new Producto());
+        model.addAttribute("esEdicion", false);
         return "productos/form";
+    }
+
+    @GetMapping("/editar/{id}")
+    public String editarProducto(@PathVariable Long id, Model model) {
+        try {
+            Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            model.addAttribute("producto", producto);
+            model.addAttribute("esEdicion", true);
+            return "productos/form";
+        } catch (Exception e) {
+            logger.error("Error al cargar producto para editar: {}", e.getMessage(), e);
+            return "redirect:/productos";
+        }
     }
 
     private String generarCodigoBarras() {
@@ -57,7 +72,8 @@ public class ProductoController {
     }
 
     @PostMapping("/guardar")
-    public String guardarProducto(@RequestParam String nombre,
+    public String guardarProducto(@RequestParam(required = false) Long id,
+                                @RequestParam String nombre,
                                 @RequestParam String descripcion,
                                 @RequestParam BigDecimal precio,
                                 @RequestParam Integer stock,
@@ -65,20 +81,27 @@ public class ProductoController {
                                 @RequestParam(required = false) Integer limiteMinimo,
                                 RedirectAttributes redirectAttributes) {
         try {
-            logger.info("Iniciando guardado de producto - Datos recibidos:");
+            logger.info("Iniciando guardado/actualización de producto - Datos recibidos:");
+            logger.info("ID: {}", id);
             logger.info("Nombre: {}", nombre);
             logger.info("Precio: {}", precio);
             logger.info("Stock: {}", stock);
             logger.info("Categoría: {}", categoria);
             logger.info("Límite mínimo: {}", limiteMinimo);
             
-            Producto producto = new Producto();
-            String codigoBarras = generarCodigoBarras();
-            logger.info("Código de barras generado: {}", codigoBarras);
+            Producto producto;
+            if (id != null) {
+                producto = productoRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            } else {
+                producto = new Producto();
+                String codigoBarras = generarCodigoBarras();
+                logger.info("Código de barras generado: {}", codigoBarras);
+                producto.setCodigoBarras(codigoBarras);
+            }
             
             producto.setNombre(nombre);
             producto.setDescripcion(descripcion);
-            producto.setCodigoBarras(codigoBarras);
             producto.setPrecio(precio);
             producto.setStock(stock);
             producto.setCategoria(categoria);
@@ -118,19 +141,6 @@ public class ProductoController {
         model.addAttribute("productos", productosStockBajo);
         model.addAttribute("titulo", "Productos con Stock Bajo");
         return "productos/lista";
-    }
-
-    @GetMapping("/editar/{id}")
-    public String mostrarFormularioEditar(@PathVariable Long id, Model model) {
-        try {
-            Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-            model.addAttribute("producto", producto);
-            return "productos/form";
-        } catch (Exception e) {
-            logger.error("Error al cargar el producto para editar: {}", e.getMessage(), e);
-            return "redirect:/productos";
-        }
     }
 
     @GetMapping("/eliminar/{id}")

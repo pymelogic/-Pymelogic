@@ -146,12 +146,15 @@
 </head>
 <body>
     <div class="container mt-4">
-        <h2>Agregar Nuevo Producto</h2>
+        <h2 th:text="${esEdicion} ? 'Editar Producto' : 'Agregar Nuevo Producto'"></h2>
         
         <form th:action="@{/productos/guardar}" method="post" class="needs-validation" novalidate>
+            <input type="hidden" name="id" th:if="${producto.id != null}" th:value="${producto.id}">
+            
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre*</label>
-                <input type="text" class="form-control" id="nombre" name="nombre" required>
+                <input type="text" class="form-control" id="nombre" name="nombre" required
+                       th:value="${producto.nombre}">
                 <div class="invalid-feedback">
                     El nombre es requerido
                 </div>
@@ -159,14 +162,16 @@
 
             <div class="mb-3">
                 <label for="descripcion" class="form-label">Descripción</label>
-                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
+                          th:text="${producto.descripcion}"></textarea>
             </div>
 
             <div class="mb-3">
                 <label for="precio" class="form-label">Precio*</label>
                 <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" id="precio" name="precio" step="0.01" min="0" required>
+                    <input type="number" class="form-control" id="precio" name="precio" step="0.01" min="0" required
+                           th:value="${producto.precio}">
                     <div class="invalid-feedback">
                         El precio es requerido y debe ser mayor a 0
                     </div>
@@ -174,26 +179,29 @@
             </div>
 
             <div class="mb-3">
-                <label for="stock" class="form-label">Stock Inicial*</label>
-                <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+                <label for="stock" class="form-label">Stock*</label>
+                <input type="number" class="form-control" id="stock" name="stock" min="0" required
+                       th:value="${producto.stock}">
                 <div class="invalid-feedback">
-                    El stock inicial es requerido
+                    El stock es requerido
                 </div>
             </div>
 
             <div class="mb-3">
                 <label for="categoria" class="form-label">Categoría</label>
-                <input type="text" class="form-control" id="categoria" name="categoria">
+                <input type="text" class="form-control" id="categoria" name="categoria"
+                       th:value="${producto.categoria}">
             </div>
 
             <div class="mb-3">
                 <label for="limiteMinimo" class="form-label">Límite Mínimo de Stock</label>
-                <input type="number" class="form-control" id="limiteMinimo" name="limiteMinimo" min="0">
+                <input type="number" class="form-control" id="limiteMinimo" name="limiteMinimo" min="0"
+                       th:value="${producto.limiteStock != null ? producto.limiteStock.limiteMinimo : ''}">
                 <div class="form-text">Cuando el stock llegue a este número, se marcará como bajo stock</div>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                <button type="submit" class="btn btn-primary" th:text="${esEdicion ? 'Actualizar Producto' : 'Guardar Producto'}"></button>
                 <a href="/productos" class="btn btn-secondary">Cancelar</a>
             </div>
         </form>
