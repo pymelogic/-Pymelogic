@@ -15,6 +15,22 @@ BEGIN
     )
 END
 
+-- Eliminar tabla Proveedor si existe
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Proveedor]') AND type in (N'U'))
+BEGIN
+    DROP TABLE [dbo].[Proveedor]
+END
+
+-- Crear tabla Proveedor
+CREATE TABLE [dbo].[Proveedor](
+    [id] [bigint] IDENTITY(1,1) NOT NULL,
+    [nombre] [nvarchar](255) NOT NULL,
+    [contacto] [nvarchar](255) NOT NULL,
+    [email] [nvarchar](255) NULL,
+    [direccion] [nvarchar](500) NULL,
+        CONSTRAINT [PK_Proveedor] PRIMARY KEY CLUSTERED ([id] ASC)
+    )
+
 -- Crear tabla LimiteStock si no existe
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[LimiteStock]') AND type in (N'U'))
 BEGIN

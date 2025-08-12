@@ -14,11 +14,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // Permitir todo por ahora para testing
+                .requestMatchers("/**").permitAll()
+                .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF por simplicidad
+            .csrf(csrf -> csrf.disable())
             .headers(headers -> headers
-                .frameOptions().disable() // Permitir frames para desarrollo
+                .frameOptions(frame -> frame.sameOrigin())
             );
         
         return http.build();

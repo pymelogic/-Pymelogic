@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Proveedores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --primary-light: #6BA4E7;
+            --background-color: #f8f9fa;
+            --text-color: #333333;
+            --border-color: #E1E1E1;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--border-color);
+            padding: 1rem 1.5rem;
+        }
+
+        .badge-status {
+            padding: 0.5em 1em;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-inactive {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .datatable-wrapper {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(74, 144, 226, 0.05);
+            transform: scale(1.01);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .search-box {
+            position: relative;
+            flex-grow: 1;
+            margin-bottom: 1rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+            border-radius: 20px;
+        }
+
+        .provider-contact {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .provider-info i {
+            width: 20px;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Cabecera de la página -->
+    <div class="page-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h2 mb-0">Gestión de Proveedores</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">Proveedores</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Alertas y mensajes -->
+        <div th:if="${mensaje}" th:class="'alert alert-' + ${tipoMensaje} + ' alert-dismissible fade show'" role="alert">
+            <i class="bi" th:classappend="${tipoMensaje == 'success'} ? 'bi-check-circle' : 'bi-exclamation-triangle'"></i>
+            <span th:text="${mensaje}" class="ms-2"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Tarjeta principal -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-building fs-4 me-2 text-primary"></i>
+                    <h5 class="card-title mb-0">Lista de Proveedores</h5>
+                </div>
+                <a href="/proveedores/nuevo" class="btn btn-primary btn-icon">
+                    <i class="bi bi-plus-lg"></i>
+                    Nuevo Proveedor
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Búsqueda -->
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar proveedores...">
+                </div>
+
+                <!-- Tabla de proveedores -->
+                <div class="datatable-wrapper">
+                    <table class="table table-hover" id="proveedoresTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Empresa</th>
+                                <th>Contacto</th>
+                                <th>Información</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="proveedor : ${proveedores}">
+                                <td th:text="${proveedor.id}"></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-building me-2 text-primary"></i>
+                                        <div>
+                                            <div class="fw-bold" th:text="${proveedor.nombre}"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="provider-contact">
+                                        <div><i class="bi bi-person-fill"></i> <span th:text="${proveedor.contacto}"></span></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="provider-info">
+                                        <div><i class="bi bi-envelope-fill"></i> <span th:text="${proveedor.email}"></span></div>
+                                        <div><i class="bi bi-geo-alt-fill"></i> <span th:text="${proveedor.direccion}"></span></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-status badge-active">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Registrado</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a th:href="@{/proveedores/editar/{id}(id=${proveedor.id})}"
+                                           class="btn btn-warning btn-action" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a th:href="@{/proveedores/eliminar/{id}(id=${proveedor.id})}"
+                                           class="btn btn-danger btn-action"
+                                           onclick="return confirm('¿Estás seguro de que deseas eliminar este proveedor?')"
+                                           title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Inicializar DataTable
+            var table = $('#proveedoresTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json'
+                },
+                pageLength: 10,
+                responsive: true,
+                dom: '<"d-flex justify-content-between align-items-center"lf>rtip'
+            });
+
+            // Búsqueda en tiempo real
+            $('#searchInput').on('keyup', function() {
+                table.search(this.value).draw();
+            });
+        });
+    </script>
+</body>
+</html>
