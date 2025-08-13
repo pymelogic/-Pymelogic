@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,14 +40,26 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="#">Inicio</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/productos">Productos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/proveedores">Proveedores</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/auth/login">Iniciar Sesión</a>
+                    <th:block sec:authorize="!isAuthenticated()">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/auth/login">Iniciar Sesión</a>
+                        </li>
+                    </th:block>
+                    <th:block sec:authorize="isAuthenticated()">
+                        <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/auth/logout}" method="post" class="dropdown-item">
+                                    <button type="submit" class="btn btn-link text-decoration-none p-0">
+                                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>
@@ -59,95 +71,61 @@
         <div class="container">
             <h1 class="display-4 fw-bold">Bienvenido a PymeLogic</h1>
             <p class="lead mb-4">Sistema integral de gestión para pequeñas y medianas empresas</p>
-            <a href="/auth/register" class="btn btn-primary btn-lg me-2">Registrarse</a>
-            <a href="/auth/login" class="btn btn-outline-light btn-lg">Iniciar Sesión</a>
+            <th:block sec:authorize="!isAuthenticated()">
+                <a href="/auth/login" class="btn btn-outline-light btn-lg">Iniciar Sesión</a>
+            </th:block>
+            <th:block sec:authorize="isAuthenticated()">
+            <div class="row g-4 mt-4">
+                <div class="col-md-3">
+                    <a href="/productos" class="text-decoration-none">
+                        <div class="card h-100 text-center p-3 bg-transparent border-light text-light">
+                            <div class="card-body">
+                                <i class="bi bi-box-seam feature-icon"></i>
+                                <h3 class="h5">Productos</h3>
+                                <p class="card-text">Gestiona tu inventario</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/proveedores" class="text-decoration-none">
+                        <div class="card h-100 text-center p-3 bg-transparent border-light text-light">
+                            <div class="card-body">
+                                <i class="bi bi-people feature-icon"></i>
+                                <h3 class="h5">Proveedores</h3>
+                                <p class="card-text">Gestión de proveedores</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/movimientos" class="text-decoration-none">
+                        <div class="card h-100 text-center p-3 bg-transparent border-light text-light">
+                            <div class="card-body">
+                                <i class="bi bi-graph-up feature-icon"></i>
+                                <h3 class="h5">Movimientos</h3>
+                                <p class="card-text">Control de stock</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/configuracion" class="text-decoration-none">
+                        <div class="card h-100 text-center p-3 bg-transparent border-light text-light">
+                            <div class="card-body">
+                                <i class="bi bi-gear feature-icon"></i>
+                                <h3 class="h5">Configuración</h3>
+                                <p class="card-text">Ajustes del sistema</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            </th:block>
         </div>
     </section>
 
-    <!-- Accesos Rápidos -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Accesos Rápidos</h2>
-            <div class="row g-4">
-                <div class="col-md-3">
-                    <div class="card h-100 text-center p-3">
-                        <div class="card-body">
-                            <i class="bi bi-box-seam feature-icon"></i>
-                            <h3 class="h5">Productos</h3>
-                            <p class="card-text">Gestiona tu inventario</p>
-                            <a href="/productos" class="btn btn-primary">Acceder</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card h-100 text-center p-3">
-                        <div class="card-body">
-                            <i class="bi bi-people feature-icon"></i>
-                            <h3 class="h5">Proveedores</h3>
-                            <p class="card-text">Gestión de proveedores</p>
-                            <a href="/proveedores" class="btn btn-primary">Acceder</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card h-100 text-center p-3">
-                        <div class="card-body">
-                            <i class="bi bi-graph-up feature-icon"></i>
-                            <h3 class="h5">Movimientos</h3>
-                            <p class="card-text">Control de stock</p>
-                            <a href="/movimientos" class="btn btn-primary">Acceder</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card h-100 text-center p-3">
-                        <div class="card-body">
-                            <i class="bi bi-gear feature-icon"></i>
-                            <h3 class="h5">Configuración</h3>
-                            <p class="card-text">Ajustes del sistema</p>
-                            <a href="/configuracion" class="btn btn-primary">Acceder</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Características principales -->
-    <section class="py-5">
-        <div class="container">
-            <h2 class="text-center mb-5">Características Principales</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="bi bi-box-seam feature-icon"></i>
-                            <h3 class="h5">Gestión de Inventario</h3>
-                            <p class="card-text">Control completo de tu inventario con alertas de stock y seguimiento en tiempo real.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="bi bi-graph-up feature-icon"></i>
-                            <h3 class="h5">Reportes y Estadísticas</h3>
-                            <p class="card-text">Analiza el rendimiento de tu negocio con reportes detallados y gráficos informativos.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="bi bi-people feature-icon"></i>
-                            <h3 class="h5">Gestión de Proveedores</h3>
-                            <p class="card-text">Mantén organizados tus contactos y gestiona eficientemente tus proveedores.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    <!-- Footer -->
 
     <!-- Footer -->
     <footer class="bg-dark text-light py-4">

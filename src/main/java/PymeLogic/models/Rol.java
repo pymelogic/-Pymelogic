@@ -13,7 +13,7 @@ public class Rol extends BaseEntity {
     private String permisos;
 
     public enum TipoRol {
-        ADMIN, OPERADOR, CONSULTA
+        ROLE_ADMIN, ROLE_USER
     }
 
     // Getters y Setters

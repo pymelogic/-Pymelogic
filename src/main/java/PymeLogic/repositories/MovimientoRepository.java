@@ -1,12 +1,13 @@
 package PymeLogic.repositories;
 
 import PymeLogic.models.Movimiento;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
-    List<Movimiento> findByProductoId(Long productoId);
-    List<Movimiento> findByFechaBetween(LocalDateTime inicio, LocalDateTime fin);
-    List<Movimiento> findByTipo(Movimiento.TipoMovimiento tipo);
+    Page<Movimiento> findByProductoId(Long productoId, Pageable pageable);
+    Page<Movimiento> findByFechaBetween(LocalDateTime inicio, LocalDateTime fin, Pageable pageable);
+    Page<Movimiento> findByTipo(Movimiento.TipoMovimiento tipo, Pageable pageable);
 }

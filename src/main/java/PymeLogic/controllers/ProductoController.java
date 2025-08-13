@@ -4,6 +4,9 @@ import PymeLogic.models.Producto;
 import PymeLogic.models.LimiteStock;
 import PymeLogic.repositories.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +14,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
-import java.util.List;
 
 @Controller
 @RequestMapping("/productos")
@@ -23,18 +25,35 @@ public class ProductoController {
     private ProductoRepository productoRepository;
 
     @GetMapping
-    public String listarProductos(Model model) {
+    public String listarProductos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String search,
+            Model model) {
         try {
-            List<Producto> productos = productoRepository.findAll();
-            logger.info("Productos encontrados: {}", productos.size());
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Producto> productosPage;
             
-            if (productos.isEmpty()) {
-                logger.info("No hay productos en la base de datos");
+            if (search != null && !search.trim().isEmpty()) {
+                productosPage = productoRepository.findByNombreContainingIgnoreCase(search, pageable);
+                model.addAttribute("search", search);
             } else {
-                logger.info("Productos recuperados correctamente. Primer producto: {}", productos.get(0).getNombre());
+                productosPage = productoRepository.findAll(pageable);
             }
             
-            model.addAttribute("productos", productos);
+            logger.info("Productos encontrados: {}", productosPage.getTotalElements());
+            
+            if (productosPage.isEmpty()) {
+                logger.info("No hay productos en la base de datos");
+            } else {
+                logger.info("Productos recuperados correctamente. Primer producto: {}", 
+                    productosPage.getContent().get(0).getNombre());
+            }
+            
+            model.addAttribute("productos", productosPage.getContent());
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", productosPage.getTotalPages());
+            model.addAttribute("totalItems", productosPage.getTotalElements());
             return "productos/lista";
         } catch (Exception e) {
             logger.error("Error al listar productos: {}", e.getMessage(), e);
@@ -124,11 +143,18 @@ public class ProductoController {
         } catch (Exception e) {
             logger.error("Error al guardar el producto: {}", e.getMessage(), e);
             logger.error("Causa del error: ", e);
+            logger.error("Stack trace completo: ", e);
             
             String mensajeError = e.getMessage();
             if (e.getCause() != null) {
                 mensajeError += " - Causa: " + e.getCause().getMessage();
+                logger.error("Causa raíz: {}", e.getCause().getMessage());
             }
+            
+            // Log de los detalles del producto que se intentó guardar
+            logger.error("Detalles del producto que falló:");
+            logger.error("ID: {}, Nombre: {}, Precio: {}, Stock: {}, Categoría: {}", 
+                id, nombre, precio, stock, categoria);
             
             redirectAttributes.addFlashAttribute("error", "Error al guardar el producto: " + mensajeError);
             return "redirect:/productos/nuevo";
@@ -136,9 +162,16 @@ public class ProductoController {
     }
 
     @GetMapping("/stock-bajo")
-    public String listarProductosStockBajo(Model model) {
-        List<Producto> productosStockBajo = productoRepository.findProductosConStockBajo();
-        model.addAttribute("productos", productosStockBajo);
+    public String listarProductosStockBajo(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Producto> productosStockBajo = productoRepository.findProductosConStockBajo(pageable);
+        model.addAttribute("productos", productosStockBajo.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", productosStockBajo.getTotalPages());
+        model.addAttribute("totalItems", productosStockBajo.getTotalElements());
         model.addAttribute("titulo", "Productos con Stock Bajo");
         return "productos/lista";
     }
@@ -146,13 +179,22 @@ public class ProductoController {
     @GetMapping("/eliminar/{id}")
     public String eliminarProducto(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
+            logger.info("Intentando eliminar producto con ID: {}", id);
+            
             Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
             
+            logger.info("Producto encontrado: {}", producto.getNombre());
             productoRepository.delete(producto);
+            logger.info("Producto eliminado exitosamente");
+            
             redirectAttributes.addFlashAttribute("mensaje", "Producto eliminado exitosamente");
         } catch (Exception e) {
             logger.error("Error al eliminar el producto: {}", e.getMessage(), e);
+            logger.error("Stack trace completo: ", e);
+            if (e.getCause() != null) {
+                logger.error("Causa raíz: {}", e.getCause().getMessage());
+            }
             redirectAttributes.addFlashAttribute("error", "Error al eliminar el producto: " + e.getMessage());
         }
         return "redirect:/productos";
