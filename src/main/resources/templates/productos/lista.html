@@ -219,7 +219,17 @@
             <tbody>
                 <tr th:each="producto : ${productos}">
                     <td th:text="${producto.codigoBarras}"></td>
-                    <td th:text="${producto.nombre}"></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <div th:if="${producto.imagen != null}">
+                                <img th:src="${producto.imagen}" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:6px;"/>
+                            </div>
+                            <div>
+                                <div th:text="${producto.nombre}"></div>
+                                <small class="text-muted" th:text="${producto.categoria}"></small>
+                            </div>
+                        </div>
+                    </td>
                     <td th:text="${producto.categoria}"></td>
                     <td>
                         <span th:text="${producto.stock}"

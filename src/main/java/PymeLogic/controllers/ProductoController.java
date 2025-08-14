@@ -14,6 +14,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import org.springframework.http.MediaType;
 
 @Controller
 @RequestMapping("/productos")
@@ -98,6 +106,7 @@ public class ProductoController {
                                 @RequestParam Integer stock,
                                 @RequestParam(required = false) String categoria,
                                 @RequestParam(required = false) Integer limiteMinimo,
+                                @RequestParam(required = false) MultipartFile imagenFile,
                                 RedirectAttributes redirectAttributes) {
         try {
             logger.info("Iniciando guardado/actualización de producto - Datos recibidos:");
@@ -109,9 +118,12 @@ public class ProductoController {
             logger.info("Límite mínimo: {}", limiteMinimo);
             
             Producto producto;
+            String previousImage = null;
+            
             if (id != null) {
                 producto = productoRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                previousImage = producto.getImagen(); // Guardamos la imagen anterior
             } else {
                 producto = new Producto();
                 String codigoBarras = generarCodigoBarras();
@@ -125,39 +137,70 @@ public class ProductoController {
             producto.setStock(stock);
             producto.setCategoria(categoria);
 
+            // Manejo del límite de stock
             if (limiteMinimo != null) {
-                logger.info("Configurando límite de stock mínimo: {}", limiteMinimo);
-                LimiteStock limite = new LimiteStock();
+                LimiteStock limite;
+                if (producto.getLimiteStock() != null) {
+                    limite = producto.getLimiteStock();
+                } else {
+                    limite = new LimiteStock();
+                    limite.setProducto(producto);
+                }
                 limite.setLimiteMinimo(limiteMinimo);
-                // Establecemos un límite máximo por defecto (2 veces el límite mínimo)
                 limite.setLimiteMaximo(limiteMinimo * 2);
-                limite.setProducto(producto);
                 producto.setLimiteStock(limite);
             }
 
+            // Manejo de imagen
+            if (imagenFile != null && !imagenFile.isEmpty()) {
+                try {
+                    String originalFilename = StringUtils.cleanPath(imagenFile.getOriginalFilename());
+                    String filename = System.currentTimeMillis() + "_" + originalFilename.replaceAll("[^a-zA-Z0-9\\.\\-_]", "_");
+                    Path uploadDir = Paths.get("src/main/resources/static/images");
+                    Files.createDirectories(uploadDir);
+                    Path targetPath = uploadDir.resolve(filename);
+                    Files.copy(imagenFile.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Solo actualizamos la imagen si la nueva se guardó correctamente
+                    String newPublicPath = "/images/" + filename;
+                    producto.setImagen(newPublicPath);
+                    
+                    logger.info("Nueva imagen guardada en: {}", targetPath.toAbsolutePath());
+                    
+                    // Si teníamos una imagen previa y es diferente, la eliminamos
+                    if (previousImage != null && !previousImage.equals(newPublicPath)) {
+                        deleteImageFile(previousImage);
+                        logger.info("Imagen anterior eliminada: {}", previousImage);
+                    }
+                } catch (IOException ex) {
+                    logger.error("Error al guardar la imagen: {}", ex.getMessage());
+                    redirectAttributes.addFlashAttribute("error", "No se pudo guardar la imagen: " + ex.getMessage());
+                }
+            } else if (id != null) {
+                // Si estamos editando y no se subió una nueva imagen, mantenemos la anterior
+                producto.setImagen(previousImage);
+            }
+
+            // Guardamos el producto
             producto = productoRepository.save(producto);
             logger.info("Producto guardado exitosamente con ID: {}", producto.getId());
             
-            redirectAttributes.addFlashAttribute("mensaje", "Producto '" + nombre + "' guardado exitosamente");
+            String mensaje = id != null ? "Producto actualizado exitosamente" : "Producto creado exitosamente";
+            redirectAttributes.addFlashAttribute("mensaje", mensaje);
             return "redirect:/productos";
+            
         } catch (Exception e) {
             logger.error("Error al guardar el producto: {}", e.getMessage(), e);
-            logger.error("Causa del error: ", e);
             logger.error("Stack trace completo: ", e);
             
-            String mensajeError = e.getMessage();
+            String mensajeError = "Error al " + (id != null ? "actualizar" : "crear") + " el producto: " + e.getMessage();
             if (e.getCause() != null) {
-                mensajeError += " - Causa: " + e.getCause().getMessage();
                 logger.error("Causa raíz: {}", e.getCause().getMessage());
+                mensajeError += " - " + e.getCause().getMessage();
             }
             
-            // Log de los detalles del producto que se intentó guardar
-            logger.error("Detalles del producto que falló:");
-            logger.error("ID: {}, Nombre: {}, Precio: {}, Stock: {}, Categoría: {}", 
-                id, nombre, precio, stock, categoria);
-            
-            redirectAttributes.addFlashAttribute("error", "Error al guardar el producto: " + mensajeError);
-            return "redirect:/productos/nuevo";
+            redirectAttributes.addFlashAttribute("error", mensajeError);
+            return id != null ? "redirect:/productos/editar/" + id : "redirect:/productos/nuevo";
         }
     }
 
@@ -185,6 +228,12 @@ public class ProductoController {
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
             
             logger.info("Producto encontrado: {}", producto.getNombre());
+
+            // Eliminar imagen asociada si existe
+            if (producto.getImagen() != null && !producto.getImagen().isEmpty()) {
+                deleteImageFile(producto.getImagen());
+            }
+
             productoRepository.delete(producto);
             logger.info("Producto eliminado exitosamente");
             
@@ -198,5 +247,21 @@ public class ProductoController {
             redirectAttributes.addFlashAttribute("error", "Error al eliminar el producto: " + e.getMessage());
         }
         return "redirect:/productos";
+    }
+
+    // Método auxiliar para eliminar archivo de imagen dado su URL pública (/images/filename)
+    private void deleteImageFile(String imageUrl) {
+        try {
+            if (imageUrl == null || imageUrl.isEmpty()) return;
+            String relative = imageUrl;
+            if (relative.startsWith("/")) relative = relative.substring(1);
+            Path filePath = Paths.get("src/main/resources/static").resolve(relative).normalize();
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                logger.info("Archivo de imagen eliminado: {}", filePath.toAbsolutePath());
+            }
+        } catch (IOException ex) {
+            logger.error("No se pudo eliminar el archivo de imagen: {}", ex.getMessage(), ex);
+        }
     }
 }

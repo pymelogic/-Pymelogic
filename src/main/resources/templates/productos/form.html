@@ -148,7 +148,7 @@
     <div class="container mt-4">
         <h2 th:text="${esEdicion} ? 'Editar Producto' : 'Agregar Nuevo Producto'"></h2>
         
-        <form th:action="@{/productos/guardar}" method="post" class="needs-validation" novalidate>
+        <form th:action="@{/productos/guardar}" method="post" class="needs-validation" novalidate enctype="multipart/form-data">
             <input type="hidden" name="id" th:if="${producto.id != null}" th:value="${producto.id}">
             
             <div class="mb-3">
@@ -191,6 +191,19 @@
                 <label for="categoria" class="form-label">Categoría</label>
                 <input type="text" class="form-control" id="categoria" name="categoria"
                        th:value="${producto.categoria}">
+            </div>
+
+            <!-- Imagen -->
+            <div class="mb-3">
+                <label for="imagenFile" class="form-label">Imagen del Producto</label>
+
+                <!-- Vista previa si existe imagen -->
+                <div th:if="${producto.imagen != null}" class="mb-2">
+                    <img th:src="${producto.imagen + '?t=' + T(java.lang.System).currentTimeMillis()}" alt="Imagen producto" style="max-width:200px; max-height:200px; display:block; border-radius:6px;"/>
+                </div>
+
+                <input class="form-control" type="file" id="imagenFile" name="imagenFile" accept="image/*">
+                <div class="form-text">Sube una imagen (opcional). Si subes una nueva, reemplazará la anterior.</div>
             </div>
 
             <div class="mb-3">
