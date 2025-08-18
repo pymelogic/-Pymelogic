@@ -219,6 +219,62 @@ public class ProductoController {
         return "productos/lista";
     }
 
+    @GetMapping("/venta")
+    public String mostrarVistaVenta(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String search,
+            Model model) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Producto> productosPage;
+            
+            if (search != null && !search.trim().isEmpty()) {
+                productosPage = productoRepository.findByNombreContainingIgnoreCase(search, pageable);
+                model.addAttribute("search", search);
+            } else {
+                productosPage = productoRepository.findAll(pageable);
+            }
+            
+            model.addAttribute("productos", productosPage.getContent());
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", productosPage.getTotalPages());
+            model.addAttribute("totalItems", productosPage.getTotalElements());
+            return "productos/venta";
+        } catch (Exception e) {
+            logger.error("Error al cargar la vista de venta: {}", e.getMessage(), e);
+            return "error";
+        }
+    }
+
+    @PostMapping("/realizar-venta")
+    public String realizarVenta(
+            @RequestParam Long productoId,
+            @RequestParam Integer cantidad,
+            RedirectAttributes redirectAttributes) {
+        try {
+            Producto producto = productoRepository.findById(productoId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            if (producto.getStock() < cantidad) {
+                redirectAttributes.addFlashAttribute("error", 
+                    "No hay suficiente stock disponible. Stock actual: " + producto.getStock());
+                return "redirect:/productos/venta";
+            }
+            
+            producto.setStock(producto.getStock() - cantidad);
+            productoRepository.save(producto);
+            
+            redirectAttributes.addFlashAttribute("mensaje", 
+                "Venta realizada exitosamente. Vendidos: " + cantidad + " unidades de " + producto.getNombre());
+            return "redirect:/productos/venta";
+        } catch (Exception e) {
+            logger.error("Error al realizar la venta: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Error al realizar la venta: " + e.getMessage());
+            return "redirect:/productos/venta";
+        }
+    }
+
     @GetMapping("/eliminar/{id}")
     public String eliminarProducto(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
