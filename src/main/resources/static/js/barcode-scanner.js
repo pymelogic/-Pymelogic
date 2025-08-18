@@ -3,6 +3,7 @@ class BarcodeScanner {
         this.videoSelector = videoSelector;
         this.isInitialized = false;
         this.onDetectedCallback = null;
+        this.currentStream = null;
     }
 
     async init() {
@@ -17,19 +18,34 @@ class BarcodeScanner {
                 throw new Error('No se encontró ninguna cámara');
             }
 
+            // Intentar obtener la cámara trasera primero
+            const constraints = {
+                audio: false,
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    aspectRatio: { ideal: 1.777778 },
+                    focusMode: 'continuous'
+                }
+            };
+
+            // Guardar el stream para poder cambiarlo después
+            try {
+                this.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (error) {
+                console.warn('No se pudo acceder a la cámara trasera, intentando con la frontal');
+                constraints.video.facingMode = { ideal: 'user' };
+                this.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+
             // Configurar Quagga con optimizaciones de rendimiento
             await Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector(this.videoSelector),
-                    constraints: {
-                        facingMode: "environment",
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 },
-                        aspectRatio: { min: 1, max: 2 },
-                        focusMode: "continuous"
-                    },
+                    constraints: constraints,
                     area: { // Reducir el área de escaneo para mejorar el rendimiento
                         top: "0%",
                         right: "0%",
@@ -83,6 +99,10 @@ class BarcodeScanner {
     stop() {
         Quagga.stop();
         this.isInitialized = false;
+        if (this.currentStream) {
+            this.currentStream.getTracks().forEach(track => track.stop());
+            this.currentStream = null;
+        }
     }
 
     onDetected(callback) {
@@ -91,7 +111,7 @@ class BarcodeScanner {
 
     // Variable para controlar el tiempo entre detecciones
     lastDetectionTime = 0;
-    minimumDetectionInterval = 500; // 500ms entre detecciones
+    minimumDetectionInterval = 1000; // 1 segundo entre detecciones para móviles
 
     _onDetected(result) {
         const currentTime = Date.now();
@@ -106,13 +126,18 @@ class BarcodeScanner {
                 // Detener el scanner temporalmente para evitar múltiples lecturas
                 Quagga.pause();
                 
-                // Reproducir sonido de éxito
+                // Reproducir sonido y vibración de éxito
                 this._playBeepSound();
                 
                 // Ejecutar callback si existe
                 if (this.onDetectedCallback) {
-                    this.onDetectedCallback(result.codeResult.code);
+                    this.onDetectedCallback(code);
                 }
+
+                // Reanudar después de un breve delay
+                setTimeout(() => {
+                    Quagga.start();
+                }, 1500);
             }
         }
     }
@@ -147,7 +172,126 @@ class BarcodeScanner {
         }
     }
 
-    _playBeepSound() {
+    async     _playBeepSound() {
+        try {
+            // Vibrar en dispositivos móviles
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+            
+            // Reproducir un beep
+            var context = new (window.AudioContext || window.webkitAudioContext)();
+            var osc = context.createOscillator();
+            var gain = context.createGain();
+            
+            osc.connect(gain);
+            gain.connect(context.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, context.currentTime);
+            gain.gain.setValueAtTime(0.1, context.currentTime);
+            
+            osc.start(context.currentTime);
+            
+            setTimeout(function() {
+                osc.stop();
+                context.close();
+            }, 100);
+        } catch (error) {
+            console.error('Error al reproducir el sonido:', error);
+        }
+    }
+
+    // Método para cambiar entre cámaras
+    switchCamera() {
+        var self = this;
+        
+        if (self.currentStream) {
+            self.currentStream.getTracks().forEach(function(track) {
+                track.stop();
+            });
+        }
+
+        return navigator.mediaDevices.enumerateDevices()
+            .then(function(devices) {
+                var videoDevices = devices.filter(function(device) {
+                    return device.kind === 'videoinput';
+                });
+                
+                if (videoDevices.length < 2) {
+                    throw new Error('No hay suficientes cámaras disponibles');
+                }
+
+                // Obtener el ID de la cámara actual y cambiar a la siguiente
+                var currentTrack = self.currentStream && self.currentStream.getVideoTracks()[0];
+                var currentFacingMode = currentTrack && currentTrack.getSettings().facingMode;
+                var newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+                
+                self.stop();
+                return self.init({ video: { facingMode: { ideal: newFacingMode } } })
+                    .then(function() {
+                        self.start();
+                    });
+            });
+    }
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 1000;
+            gainNode.gain.value = 0.1;
+
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+                audioContext.close();
+            }, 100);
+            
+            // Vibrar en dispositivos móviles
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+        } catch (error) {
+            console.error('Error al reproducir el sonido:', error);
+        }
+    }
+
+    // Método para cambiar entre cámaras
+    async switchCamera() {
+        if (this.currentStream) {
+            this.currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        if (videoDevices.length < 2) {
+            throw new Error('No hay suficientes cámaras disponibles');
+        }
+
+        // Obtener el ID de la cámara actual
+        const currentDevice = videoDevices.find(device => 
+            this.currentStream && 
+            this.currentStream.getVideoTracks()[0].getSettings().deviceId === device.deviceId
+        );
+
+        const nextDevice = videoDevices.find(device => device.deviceId !== currentDevice?.deviceId);
+        
+        if (nextDevice) {
+            await this.stop();
+            // Cambiar la orientación de la cámara
+            const currentFacingMode = this.currentStream?.getVideoTracks()[0]?.getSettings()?.facingMode;
+            const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            
+            await this.init({ facingMode: { ideal: newFacingMode } });
+            this.start();
+        }
+    }
         // Crear y reproducir un sonido de beep
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
