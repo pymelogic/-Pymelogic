@@ -25,6 +25,57 @@
         .card:hover {
             transform: translateY(-5px);
         }
+
+        /* Nueva animación minimalista profesional para el título principal */
+        .hero-title {
+            font-weight: 700;
+            background: linear-gradient(90deg, rgba(255,255,255,1), rgba(216,233,255,0.95), rgba(255,255,255,1));
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent; /* usa el gradiente como color de texto */
+            animation: hero-shine 3s linear infinite;
+            transition: transform 0.6s ease, opacity 0.6s ease;
+            will-change: transform, opacity;
+        }
+
+        /* Animación de brillo sutil y entrada suave */
+        @keyframes hero-shine {
+            0% {
+                background-position: 0% 50%;
+                opacity: 0;
+                transform: translateY(8px) scale(0.995);
+            }
+            40% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                background-position: 200% 50%;
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Movimiento de flotación muy sutil para dar vida sin distraer */
+        @keyframes hero-float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+            100% { transform: translateY(0); }
+        }
+        .hero-title.subtle-float {
+            animation: hero-shine 3s linear infinite, hero-float 6s ease-in-out infinite;
+        }
+
+        /* Respetar preferencias de usuarios que pidan reducir movimiento */
+        @media (prefers-reduced-motion: reduce) {
+            .hero-title, .hero-title.subtle-float {
+                animation: none;
+                color: #ffffff;
+                -webkit-background-clip: unset;
+                background-clip: unset;
+            }
+        }
     </style>
 </head>
 <body>
@@ -69,7 +120,7 @@
     <!-- Sección Hero -->
     <section class="hero-section text-center">
         <div class="container">
-            <h1 class="display-4 fw-bold">Bienvenido a PymeLogic</h1>
+            <h1 class="display-4 fw-bold hero-title subtle-float">Bienvenido a PymeLogic</h1>
             <p class="lead mb-4">Sistema integral de gestión para pequeñas y medianas empresas</p>
             <th:block sec:authorize="!isAuthenticated()">
                 <a href="/auth/login" class="btn btn-outline-light btn-lg">Iniciar Sesión</a>
