@@ -218,7 +218,17 @@
             </thead>
             <tbody>
                 <tr th:each="producto : ${productos}">
-                    <td th:text="${producto.codigoBarras}"></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <code th:text="${producto.codigoBarras}" class="small"></code>
+                            <a th:href="@{'/productos/codigo-barras/' + ${producto.id}}" 
+                               class="btn btn-outline-secondary btn-sm" 
+                               title="Descargar código de barras"
+                               data-bs-toggle="tooltip">
+                                <i class="bi bi-upc"></i>
+                            </a>
+                        </div>
+                    </td>
                     <td>
                         <div style="display:flex; align-items:center; gap:0.75rem;">
                             <div th:if="${producto.imagen != null}">
@@ -288,6 +298,12 @@
             // Actualizar el enlace de eliminación
             const btnConfirmar = document.getElementById('btnConfirmarEliminar');
             btnConfirmar.href = `/productos/eliminar/${productoId}`;
+        });
+
+        // Inicializar tooltips de Bootstrap
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     </script>
 </body>

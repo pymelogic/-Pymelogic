@@ -18,6 +18,82 @@
             --warning-color: #ffc107;
             --danger-color: #dc3545;
         }
+        
+        /* Estilos para el escáner de código de barras */
+        #interactive.viewport {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+        
+        #interactive.viewport > canvas, #interactive.viewport > video {
+            max-width: 100%;
+            width: 100%;
+            height: 100%;
+        }
+        
+        canvas.drawing, canvas.drawingBuffer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        #scannerModal .modal-body {
+            padding: 0;
+            background: black;
+            position: relative;
+        }
+
+        #scannerControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        #scannerStatus {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .torch-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .torch-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .camera-switch {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .camera-switch:hover {
+            background: rgba(255,255,255,0.3);
+        }
 
         body {
             background-color: var(--background-color);
@@ -165,7 +241,13 @@
     <div class="page-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h2 mb-0">Gestión de Productos</h1>
+                <div class="d-flex align-items-center">
+                    <a href="/" class="btn btn-light me-3">
+                        <i class="bi bi-house-door-fill me-2"></i>
+                        Inicio
+                    </a>
+                    <h1 class="h2 mb-0">Gestión de Productos</h1>
+                </div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="/" class="text-white">Inicio</a></li>
@@ -231,7 +313,10 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-box me-2 text-primary"></i>
-                                        <span th:text="${producto.nombre}"></span>
+                                        <div class="d-flex flex-column">
+                                            <span th:text="${producto.nombre}" class="producto-nombre"></span>
+                                            <small class="text-muted producto-codigo" th:text="${producto.codigoBarras}"></small>
+                                        </div>
                                     </div>
                                 </td>
                                 <td th:text="${producto.descripcion}"></td>
@@ -269,11 +354,44 @@
         </div>
     </div>
 
+    <!-- Modal del Scanner -->
+    <div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scannerModalLabel">Escáner de Códigos de Barras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="interactive" class="viewport">
+                        <!-- Aquí se mostrará la vista de la cámara -->
+                    </div>
+                    <div id="scannerStatus">
+                        Apunta al código de barras
+                    </div>
+                    <div id="scannerControls">
+                        <button class="torch-button" id="torchButton">
+                            <i class="bi bi-lightbulb"></i>
+                            Flash
+                        </button>
+                        <button class="camera-switch" id="switchCameraButton">
+                            <i class="bi bi-camera"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+    <!-- QuaggaJS para el scanner -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <!-- Nuestro código del scanner -->
+    <script src="/js/barcode-scanner.js"></script>
     
     <script>
         $(document).ready(function() {
@@ -287,9 +405,175 @@
                 dom: '<"d-flex justify-content-between align-items-center"lf>rtip'
             });
 
+            // Inicializar Scanner
+            const scanner = new BarcodeScanner('#interactive.viewport > video');
+            let scannerActive = false;
+            let currentStream = null;
+
+            // Función para activar/desactivar la linterna
+            async function toggleTorch() {
+                if (!currentStream) return;
+                
+                const track = currentStream.getVideoTracks()[0];
+                try {
+                    await track.applyConstraints({
+                        advanced: [{torch: !track.getConstraints().torch}]
+                    });
+                } catch (err) {
+                    console.error('Error al toggle torch:', err);
+                    alert('Este dispositivo no soporta el control de la linterna');
+                }
+            }
+
+            // Función para cambiar de cámara
+            async function switchCamera() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    if (videoDevices.length < 2) {
+                        alert('Este dispositivo solo tiene una cámara');
+                        return;
+                    }
+
+                    // Obtener el ID de la cámara actual
+                    const currentCamera = currentStream.getVideoTracks()[0].getSettings().deviceId;
+                    // Encontrar la siguiente cámara
+                    const currentIndex = videoDevices.findIndex(device => device.deviceId === currentCamera);
+                    const nextCamera = videoDevices[(currentIndex + 1) % videoDevices.length];
+
+                    // Iniciar stream con la nueva cámara
+                    currentStream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: nextCamera.deviceId } }
+                    });
+
+                    // Actualizar el stream en Quagga
+                    const videoTrack = currentStream.getVideoTracks()[0];
+                    const videoElement = document.querySelector('#interactive.viewport > video');
+                    if (videoElement) {
+                        videoElement.srcObject = new MediaStream([videoTrack]);
+                    }
+
+                } catch (err) {
+                    console.error('Error al cambiar de cámara:', err);
+                    alert('Error al cambiar de cámara');
+                }
+            }
+
+            // Evento para mostrar el modal del scanner
+            $('#searchInput').on('focus', function() {
+                $('#scannerModal').modal('show');
+            });
+
+            // Función para mostrar mensaje
+            function showMessage(type, message) {
+                // Remover mensajes anteriores
+                $('.alert').remove();
+                
+                const alertHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>`;
+                $('.datatable-wrapper').before(alertHTML);
+            }
+
+            // Función para filtrar por código de barras
+            function filterByBarcode(code) {
+                let found = false;
+                
+                // Limpiar filtros anteriores
+                table.search('').draw();
+                
+                // Buscar y mostrar solo el producto con el código de barras exacto
+                table.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                    const $row = $(this.node());
+                    const rowBarcode = $row.find('.producto-codigo').text().trim();
+                    
+                    if (rowBarcode === code) {
+                        $row.show();
+                        found = true;
+                    } else {
+                        $row.hide();
+                    }
+                });
+                
+                // Mostrar mensaje según el resultado
+                if (found) {
+                    showMessage('success', 'Producto encontrado');
+                } else {
+                    showMessage('warning', 'No se encontró ningún producto con ese código de barras');
+                    // Mostrar todos los productos si no se encontró ninguno
+                    table.rows().every(function() {
+                        $(this.node()).show();
+                    });
+                }
+                
+                table.draw('page');
+            }
+
+            // Cuando se abre el modal
+            $('#scannerModal').on('shown.bs.modal', async function () {
+                try {
+                    await scanner.init();
+                    scanner.start();
+                    scannerActive = true;
+
+                    // Guardar referencia al stream actual
+                    const videoElement = document.querySelector('#interactive.viewport > video');
+                    if (videoElement && videoElement.srcObject) {
+                        currentStream = videoElement.srcObject;
+                    }
+
+                    // Configurar detector de códigos
+                    scanner.onDetected(function(code) {
+                        $('#searchInput').val(code);
+                        $('#scannerModal').modal('hide');
+                        filterByBarcode(code);
+                    });
+
+                } catch (error) {
+                    console.error('Error al iniciar el scanner:', error);
+                    alert('Error al iniciar la cámara. Por favor, asegúrate de dar permisos de cámara al navegador.');
+                    $('#scannerModal').modal('hide');
+                }
+            });
+
+            // Cuando se cierra el modal
+            $('#scannerModal').on('hidden.bs.modal', function () {
+                if (scannerActive) {
+                    scanner.stop();
+                    scannerActive = false;
+                }
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+            });
+
+            // Eventos de los botones del scanner
+            $('#torchButton').on('click', toggleTorch);
+            $('#switchCameraButton').on('click', switchCamera);
+
             // Búsqueda en tiempo real
             $('#searchInput').on('keyup', function() {
-                table.search(this.value).draw();
+                const searchValue = this.value.trim();
+                if (searchValue.length >= 8 && /^\d+$/.test(searchValue)) {
+                    // Si parece un código de barras, buscar exacto
+                    filterByBarcode(searchValue);
+                } else {
+                    // Si no es un código de barras, búsqueda normal
+                    table.search(searchValue).draw();
+                    // Mostrar todas las filas
+                    table.rows().every(function() {
+                        $(this.node()).show();
+                    });
+                }
             });
 
             // Filtro por estado de stock

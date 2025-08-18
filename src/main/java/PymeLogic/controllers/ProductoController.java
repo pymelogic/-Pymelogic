@@ -22,6 +22,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.oned.Code128Writer;
+import java.io.ByteArrayOutputStream;
 
 @Controller
 @RequestMapping("/productos")
@@ -318,6 +324,31 @@ public class ProductoController {
             }
         } catch (IOException ex) {
             logger.error("No se pudo eliminar el archivo de imagen: {}", ex.getMessage(), ex);
+        }
+    }
+
+    @GetMapping("/codigo-barras/{id}")
+    public ResponseEntity<byte[]> generarCodigoBarras(@PathVariable Long id) {
+        try {
+            Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            Code128Writer writer = new Code128Writer();
+            BitMatrix bitMatrix = writer.encode(producto.getCodigoBarras(), BarcodeFormat.CODE_128, 300, 100);
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+            
+            byte[] imageBytes = baos.toByteArray();
+            
+            return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("Content-Disposition", "attachment; filename=\"" + producto.getCodigoBarras() + ".png\"")
+                .body(imageBytes);
+                
+        } catch (Exception e) {
+            logger.error("Error al generar código de barras: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
