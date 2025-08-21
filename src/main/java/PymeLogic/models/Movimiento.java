@@ -31,7 +31,7 @@ public class Movimiento extends BaseEntity {
     private Proveedor proveedor;
 
     public enum TipoMovimiento {
-        ENTRADA, SALIDA
+        ENTRADA, SALIDA, VENTA
     }
 
     // Getters y Setters
