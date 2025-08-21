@@ -1,8 +1,7 @@
 package PymeLogic.controllers;
 
 import PymeLogic.models.Movimiento;
-import PymeLogic.repositories.MovimientoRepository;
-import PymeLogic.repositories.ProductoRepository;
+import PymeLogic.service.MovimientoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,8 +12,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Controller
 @RequestMapping("/movimientos")
@@ -23,10 +20,7 @@ public class MovimientoController {
     private static final Logger logger = LoggerFactory.getLogger(MovimientoController.class);
 
     @Autowired
-    private MovimientoRepository movimientoRepository;
-
-    @Autowired
-    private ProductoRepository productoRepository;
+    private MovimientoService movimientoService;
 
     @GetMapping
     public String listarMovimientos(
@@ -44,9 +38,9 @@ public class MovimientoController {
             // Construir filtros basados en los parámetros
             if (tipo != null || fechaInicio != null || fechaFin != null || producto != null) {
                 // Aquí implementaremos la búsqueda con filtros
-                movimientosPage = movimientoRepository.findAll(pageable); // Temporal
+                movimientosPage = movimientoService.findAll(pageable); // Temporal
             } else {
-                movimientosPage = movimientoRepository.findAll(pageable);
+                movimientosPage = movimientoService.findAll(pageable);
             }
 
             // Agregar datos al modelo
