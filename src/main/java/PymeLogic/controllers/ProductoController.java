@@ -1,8 +1,9 @@
-package PymeLogic.controllers;
+    package PymeLogic.controllers;
 
 import PymeLogic.models.Producto;
 import PymeLogic.models.LimiteStock;
 import PymeLogic.repositories.ProductoRepository;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -83,18 +84,81 @@ public class ProductoController {
         return "productos/form";
     }
 
+    @GetMapping("/test")
+    public String testView(Model model) {
+        model.addAttribute("mensaje", "Prueba de vista");
+        return "productos/test";
+    }
+    
+    @GetMapping("/test-edit/{id}")
+    public String testEdit(@PathVariable Long id, Model model) {
+        model.addAttribute("mensaje", "Editando producto " + id);
+        return "productos/test";
+    }
+
     @GetMapping("/editar/{id}")
-    public String editarProducto(@PathVariable Long id, Model model) {
+    public String editarProducto(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         try {
+            logger.info("Buscando producto con ID: {}", id);
+            
             Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new RuntimeException("No se encontró el producto con ID: " + id));
+            
+            logger.info("Producto encontrado: {}", producto.getNombre());
+            
             model.addAttribute("producto", producto);
             model.addAttribute("esEdicion", true);
-            return "productos/form";
+            return "productos/editar";
+            
         } catch (Exception e) {
             logger.error("Error al cargar producto para editar: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Error al cargar el producto: " + e.getMessage());
             return "redirect:/productos";
         }
+    }
+
+    @PostMapping("/actualizar/{id}")
+    public String actualizarProducto(@PathVariable Long id,
+                                   @RequestParam String nombre,
+                                   @RequestParam String descripcion,
+                                   @RequestParam BigDecimal precio,
+                                   @RequestParam Integer stock,
+                                   @RequestParam String categoria,
+                                   @RequestParam(required = false) MultipartFile imagenFile,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            Optional<Producto> optProducto = productoRepository.findById(id);
+            
+            if (!optProducto.isPresent()) {
+                redirectAttributes.addFlashAttribute("error", "No se encontró el producto a actualizar");
+                return "redirect:/productos";
+            }
+
+            Producto producto = optProducto.get();
+            producto.setNombre(nombre);
+            producto.setDescripcion(descripcion);
+            producto.setPrecio(precio);
+            producto.setStock(stock);
+            producto.setCategoria(categoria);
+
+            // Manejar la imagen si se subió una nueva
+            if (imagenFile != null && !imagenFile.isEmpty()) {
+                String nombreArchivo = System.currentTimeMillis() + "_" + 
+                    StringUtils.cleanPath(imagenFile.getOriginalFilename());
+                Path rutaArchivo = Paths.get("src/main/resources/static/images/" + nombreArchivo);
+                Files.copy(imagenFile.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
+                producto.setImagen("/images/" + nombreArchivo);
+            }
+
+            productoRepository.save(producto);
+            redirectAttributes.addFlashAttribute("mensaje", "Producto actualizado exitosamente");
+            
+        } catch (Exception e) {
+            logger.error("Error al actualizar producto:", e);
+            redirectAttributes.addFlashAttribute("error", "Error al actualizar el producto: " + e.getMessage());
+        }
+        
+        return "redirect:/productos";
     }
 
     private String generarCodigoBarras() {

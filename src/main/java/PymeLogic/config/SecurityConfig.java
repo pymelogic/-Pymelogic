@@ -48,6 +48,7 @@ public class SecurityConfig {
             .authenticationProvider(authenticationProvider)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/auth/login", "/auth/register", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                .requestMatchers("/productos/**").authenticated()
                 .requestMatchers("/auth/login").anonymous()
                 .anyRequest().authenticated()
             )

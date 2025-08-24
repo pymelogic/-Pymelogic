@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Producto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">Editar Producto</h2>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/productos/actualizar/{id}(id=${producto.id})}" method="post" 
+                              enctype="multipart/form-data" class="needs-validation" novalidate>
+                            
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre*</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       th:value="${producto.nombre}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
+                                          th:text="${producto.descripcion}"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="precio" class="form-label">Precio*</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="precio" name="precio" 
+                                           step="0.01" th:value="${producto.precio}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="stock" class="form-label">Stock*</label>
+                                <input type="number" class="form-control" id="stock" name="stock"
+                                       th:value="${producto.stock}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoría</label>
+                                <input type="text" class="form-control" id="categoria" name="categoria"
+                                       th:value="${producto.categoria}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="imagenFile" class="form-label">Imagen del Producto</label>
+                                <div th:if="${producto.imagen != null}" class="mb-2">
+                                    <img th:src="${producto.imagen}" alt="Imagen actual" 
+                                         style="max-width: 200px; height: auto;" class="img-thumbnail">
+                                </div>
+                                <input type="file" class="form-control" id="imagenFile" name="imagenFile" 
+                                       accept="image/*">
+                                <div class="form-text">Seleccione una nueva imagen si desea cambiarla</div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Guardar Cambios
+                                </button>
+                                <a th:href="@{/productos}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Cancelar
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Validación del formulario
+        (function() {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+</body>
+</html>

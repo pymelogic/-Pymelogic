@@ -1,8 +1,34 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Agregar Producto</title>
-    <th:block th:replace="fragments/common :: headerStyles">
+    <meta charset="UTF-8">
+    <title>Editar Producto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Editar Producto</h2>
+        
+        <!-- Debug info -->
+        <div class="alert alert-info">
+            <p>ID del producto: <span th:text="${producto.id}">ID</span></p>
+            <p>Nombre del producto: <span th:text="${producto.nombre}">Nombre</span></p>
+        </div>
+
+        <form th:action="@{/productos/guardar}" method="post">
+            <input type="hidden" name="id" th:value="${producto.id}">
+            
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre:</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" th:value="${producto.nombre}">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="/productos" class="btn btn-secondary">Volver</a>
+        </form>
+    </div>
+</body>
+</html>
 
         body {
             background-color: var(--background-color);
@@ -151,13 +177,13 @@
     <div class="container mt-4">
         <h2 th:text="${esEdicion} ? 'Editar Producto' : 'Agregar Nuevo Producto'"></h2>
         
-        <form th:action="@{/productos/guardar}" method="post" class="needs-validation" novalidate enctype="multipart/form-data">
-            <input type="hidden" name="id" th:if="${producto.id != null}" th:value="${producto.id}">
+        <form th:action="@{/productos/guardar}" method="post">
+            <input type="hidden" name="id" th:value="${producto.id}">
             
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre*</label>
                 <input type="text" class="form-control" id="nombre" name="nombre" required
-                       th:value="${producto.nombre}">
+                       th:value="${producto != null ? producto.nombre : ''}">
                 <div class="invalid-feedback">
                     El nombre es requerido
                 </div>
@@ -166,7 +192,7 @@
             <div class="mb-3">
                 <label for="descripcion" class="form-label">Descripción</label>
                 <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
-                          th:text="${producto.descripcion}"></textarea>
+                          th:text="${producto != null ? producto.descripcion : ''}"></textarea>
             </div>
 
             <div class="mb-3">
