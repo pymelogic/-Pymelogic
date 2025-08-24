@@ -186,6 +186,9 @@
     </style>
 </head>
 <body>
+    <!-- Botón de inicio -->
+    <div th:replace="fragments/home-button :: homeButton"></div>
+
     <div class="container mt-4">
         <h2 th:text="${titulo != null ? titulo : 'Lista de Productos'}"></h2>
         
