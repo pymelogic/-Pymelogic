@@ -224,20 +224,34 @@ public class ProductoController {
             // Manejo de imagen
             if (imagenFile != null && !imagenFile.isEmpty()) {
                 try {
+                    // Limpiar el nombre del archivo y generar nombre único
                     String originalFilename = StringUtils.cleanPath(imagenFile.getOriginalFilename());
                     String filename = System.currentTimeMillis() + "_" + originalFilename.replaceAll("[^a-zA-Z0-9\\.\\-_]", "_");
+                    
+                    // Crear directorio en src/main/resources/static/images
                     Path uploadDir = Paths.get("src/main/resources/static/images");
                     Files.createDirectories(uploadDir);
-                    Path targetPath = uploadDir.resolve(filename);
-                    Files.copy(imagenFile.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                     
-                    // Solo actualizamos la imagen si la nueva se guardó correctamente
+                    // Crear directorio en target/classes/static/images para desarrollo
+                    Path targetUploadDir = Paths.get("target/classes/static/images");
+                    Files.createDirectories(targetUploadDir);
+                    
+                    // Guardar en ambas ubicaciones
+                    Path sourceFile = uploadDir.resolve(filename);
+                    Path targetFile = targetUploadDir.resolve(filename);
+                    
+                    // Copiar a src/main/resources
+                    Files.copy(imagenFile.getInputStream(), sourceFile, StandardCopyOption.REPLACE_EXISTING);
+                    // Copiar a target/classes
+                    Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Actualizar la ruta en la entidad
                     String newPublicPath = "/images/" + filename;
                     producto.setImagen(newPublicPath);
                     
-                    logger.info("Nueva imagen guardada en: {}", targetPath.toAbsolutePath());
+                    logger.info("Nueva imagen guardada en: {} y {}", sourceFile.toAbsolutePath(), targetFile.toAbsolutePath());
                     
-                    // Si teníamos una imagen previa y es diferente, la eliminamos
+                    // Eliminar imagen anterior si existe
                     if (previousImage != null && !previousImage.equals(newPublicPath)) {
                         deleteImageFile(previousImage);
                         logger.info("Imagen anterior eliminada: {}", previousImage);
@@ -379,12 +393,22 @@ public class ProductoController {
     private void deleteImageFile(String imageUrl) {
         try {
             if (imageUrl == null || imageUrl.isEmpty()) return;
+            
             String relative = imageUrl;
             if (relative.startsWith("/")) relative = relative.substring(1);
-            Path filePath = Paths.get("src/main/resources/static").resolve(relative).normalize();
-            if (Files.exists(filePath)) {
-                Files.delete(filePath);
-                logger.info("Archivo de imagen eliminado: {}", filePath.toAbsolutePath());
+            
+            // Eliminar de src/main/resources/static
+            Path sourceFile = Paths.get("src/main/resources/static").resolve(relative).normalize();
+            if (Files.exists(sourceFile)) {
+                Files.delete(sourceFile);
+                logger.info("Archivo de imagen eliminado de src: {}", sourceFile.toAbsolutePath());
+            }
+            
+            // Eliminar de target/classes/static
+            Path targetFile = Paths.get("target/classes/static").resolve(relative).normalize();
+            if (Files.exists(targetFile)) {
+                Files.delete(targetFile);
+                logger.info("Archivo de imagen eliminado de target: {}", targetFile.toAbsolutePath());
             }
         } catch (IOException ex) {
             logger.error("No se pudo eliminar el archivo de imagen: {}", ex.getMessage(), ex);

@@ -7,27 +7,7 @@
 </head>
 <body>
     <div class="container mt-4">
-        <form th:action="@{/productos/guardar}" method="post">
-            <input type="hidden" name="id" th:value="${producto.id}">
-            
-            <div class="mb-3">
-                <label for="nombre" class="form-label">Nombre:</label>
-                <input type="text" class="form-control" id="nombre" name="nombre" th:value="${producto.nombre}">
-            </div>
-            
-            <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="/productos" class="btn btn-secondary">Volver</a>
-        </form>
-    </div>
-</body>
-</html>
-
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        
-        <form th:action="@{/productos/guardar}" method="post">
+        <form th:action="@{/productos/guardar}" method="post" enctype="multipart/form-data">
             <input type="hidden" name="id" th:value="${producto.id}">
             
             <div class="mb-3">
