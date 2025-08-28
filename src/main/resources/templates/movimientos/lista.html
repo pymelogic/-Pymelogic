@@ -61,43 +61,19 @@
         <div class="filters shadow-sm">
             <form th:action="@{/movimientos}" method="get" class="row g-3">
                 <div class="col-md-3">
-                    <label for="tipo" class="form-label">Tipo de Movimiento</label>
-                    <select class="form-select" id="tipo" name="tipo">
-                        <option value="">Todos</option>
-                        <option th:each="tipo : ${tiposMovimiento}"
-                                th:value="${tipo}"
-                                th:text="${tipo}"
-                                th:selected="${tipo == tipoSeleccionado}">
-                        </option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="fechaInicio" class="form-label">Fecha Inicio</label>
-                    <input type="text" class="form-control datepicker" id="fechaInicio" name="fechaInicio"
-                           th:value="${fechaInicio}" placeholder="Seleccionar fecha">
-                </div>
-                <div class="col-md-3">
-                    <label for="fechaFin" class="form-label">Fecha Fin</label>
-                    <input type="text" class="form-control datepicker" id="fechaFin" name="fechaFin"
-                           th:value="${fechaFin}" placeholder="Seleccionar fecha">
+                    <label for="fecha" class="form-label">Fecha y Hora</label>
+                    <input type="text" class="form-control datepicker" id="fecha" name="fecha"
+                           th:value="${fecha}" placeholder="Seleccionar fecha">
                 </div>
                 <div class="col-md-3">
                     <label for="producto" class="form-label">Producto</label>
                     <input type="text" class="form-control" id="producto" name="producto"
                            th:value="${productoSeleccionado}" placeholder="Buscar por producto">
                 </div>
-                <div class="col-12 d-flex justify-content-between align-items-end">
+                <div class="col-12">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-search me-2"></i>Filtrar
                     </button>
-                    <a th:href="@{/movimientos/exportar(
-                        tipo=${tipoSeleccionado},
-                        fechaInicio=${fechaInicio},
-                        fechaFin=${fechaFin},
-                        producto=${productoSeleccionado})}"
-                       class="btn btn-success">
-                        <i class="bi bi-file-excel me-2"></i>Exportar a Excel
-                    </a>
                 </div>
             </form>
         </div>
@@ -105,13 +81,12 @@
         <!-- Listado de Movimientos -->
         <div class="row g-4">
             <div class="col-12" th:each="movimiento : ${movimientos}">
-                <div th:class="${'card movement-card shadow-sm ' + 
-                             (movimiento.tipo == T(PymeLogic.models.Movimiento.TipoMovimiento).ENTRADA ? 'entrada' : 'salida')}">
+                <div th:class="${'card movement-card shadow-sm ' + (#strings.toString(movimiento.tipo) == 'ENTRADA' ? 'entrada' : 'salida')}">
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-auto">
                                 <i th:class="${'bi movement-icon ' + 
-                                          (movimiento.tipo == T(PymeLogic.models.Movimiento.TipoMovimiento).ENTRADA ? 
+                                          (#strings.toString(movimiento.tipo) == 'ENTRADA' ? 
                                           'bi-box-arrow-in-right' : 'bi-box-arrow-right')}"></i>
                             </div>
                             <div class="col-md-3">
@@ -120,14 +95,14 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="text-muted mb-1">Cantidad</div>
-                                <strong th:text="${movimiento.tipo == T(PymeLogic.models.Movimiento.TipoMovimiento).ENTRADA ? '+' : '-'} + ${movimiento.cantidad}">
+                                <strong th:text="${#strings.toString(movimiento.tipo) == 'ENTRADA' ? '+' : '-'} + ${movimiento.cantidad}">
                                     Cantidad
                                 </strong>
                             </div>
                             <div class="col-md-2">
                                 <div class="text-muted mb-1">Tipo</div>
                                 <span th:class="${'badge ' + 
-                                             (movimiento.tipo == T(PymeLogic.models.Movimiento.TipoMovimiento).ENTRADA ? 
+                                             (#strings.toString(movimiento.tipo) == 'ENTRADA' ? 
                                              'bg-success' : 'bg-danger')}"
                                       th:text="${movimiento.tipo}">
                                     Tipo
@@ -157,17 +132,17 @@
         <nav th:if="${totalPages > 1}" aria-label="Page navigation" class="mt-4">
             <ul class="pagination justify-content-center">
                 <li class="page-item" th:classappend="${currentPage == 0 ? 'disabled' : ''}">
-                    <a class="page-link" th:href="@{/movimientos(page=${currentPage - 1}, tipo=${tipoSeleccionado}, fechaInicio=${fechaInicio}, fechaFin=${fechaFin}, producto=${productoSeleccionado})}">
+                    <a class="page-link" th:href="@{/movimientos(page=${currentPage - 1}, fecha=${fecha}, producto=${productoSeleccionado})}">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
                 <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
                     th:classappend="${currentPage == i ? 'active' : ''}">
-                    <a class="page-link" th:href="@{/movimientos(page=${i}, tipo=${tipoSeleccionado}, fechaInicio=${fechaInicio}, fechaFin=${fechaFin}, producto=${productoSeleccionado})}" 
+                    <a class="page-link" th:href="@{/movimientos(page=${i}, fecha=${fecha}, producto=${productoSeleccionado})}" 
                        th:text="${i + 1}"></a>
                 </li>
                 <li class="page-item" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}">
-                    <a class="page-link" th:href="@{/movimientos(page=${currentPage + 1}, tipo=${tipoSeleccionado}, fechaInicio=${fechaInicio}, fechaFin=${fechaFin}, producto=${productoSeleccionado})}">
+                    <a class="page-link" th:href="@{/movimientos(page=${currentPage + 1}, fecha=${fecha}, producto=${productoSeleccionado})}">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -182,8 +157,13 @@
         // Inicializar datepickers
         flatpickr(".datepicker", {
             locale: "es",
-            dateFormat: "Y-m-d",
-            allowInput: true
+            dateFormat: "Y-m-d H:i:S",
+            enableTime: true,
+            time_24hr: true,
+            allowInput: true,
+            defaultHour: 0,
+            defaultMinute: 0,
+            defaultSeconds: 0
         });
     </script>
 </body>

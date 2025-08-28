@@ -53,15 +53,20 @@ public class MovimientoService implements CrudService<Movimiento, Long> {
     }
     
     // Métodos específicos para Movimiento
-    public List<Movimiento> findByProductoId(Long productoId) {
-        return movimientoRepository.findAll().stream()
-            .filter(m -> m.getProducto().getId().equals(productoId))
-            .toList();
+    public Page<Movimiento> findByProductoNombre(String nombre, Pageable pageable) {
+        return movimientoRepository.findByProductoNombreContainingIgnoreCase(nombre, pageable);
     }
     
-    public List<Movimiento> findByFechaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        return movimientoRepository.findAll().stream()
-            .filter(m -> !m.getFecha().isBefore(fechaInicio) && !m.getFecha().isAfter(fechaFin))
-            .toList();
+    public Page<Movimiento> findByFecha(LocalDateTime fecha, Pageable pageable) {
+        // Crear un rango de 24 horas para la fecha seleccionada
+        LocalDateTime fechaInicio = fecha.withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime fechaFin = fecha.withHour(23).withMinute(59).withSecond(59);
+        return movimientoRepository.findByFechaBetween(fechaInicio, fechaFin, pageable);
+    }
+    
+    public Page<Movimiento> findByProductoNombreAndFecha(String nombre, LocalDateTime fecha, Pageable pageable) {
+        LocalDateTime fechaInicio = fecha.withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime fechaFin = fecha.withHour(23).withMinute(59).withSecond(59);
+        return movimientoRepository.findByProductoNombreContainingIgnoreCaseAndFechaBetween(nombre, fechaInicio, fechaFin, pageable);
     }
 }
