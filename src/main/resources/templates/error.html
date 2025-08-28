@@ -10,8 +10,24 @@
         <div class="alert alert-danger">
             <h4 class="alert-heading">¡Error!</h4>
             <p th:text="${error}">Ha ocurrido un error.</p>
+            <hr>
+            <p class="mb-0" th:if="${message}" th:text="${message}">Detalles del error</p>
         </div>
-        <a href="/productos" class="btn btn-primary">Volver a la lista de productos</a>
+        
+        <!-- Detalles técnicos (solo visible en desarrollo) -->
+        <div th:if="${trace}" class="card mt-3">
+            <div class="card-header">
+                Detalles técnicos
+            </div>
+            <div class="card-body">
+                <pre class="mb-0"><code th:text="${#strings.arrayJoin(trace,'\n')}">Stack trace</code></pre>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="/movimientos" class="btn btn-primary me-2">Volver a Movimientos</a>
+            <a href="/" class="btn btn-secondary">Ir al Inicio</a>
+        </div>
     </div>
 </body>
 </html>
