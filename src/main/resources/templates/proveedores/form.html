@@ -84,15 +84,7 @@
     <div class="page-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h2 mb-0" th:text="${esEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor'}">Proveedor</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="/" class="text-white">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="/proveedores" class="text-white">Proveedores</a></li>
-                        <li class="breadcrumb-item active text-white" aria-current="page" 
-                            th:text="${esEdicion ? 'Editar' : 'Nuevo'}">Acción</li>
-                    </ol>
-                </nav>
+                <h1 class="h2 mb-0 text-dark" th:text="${esEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor'}" style="color: #000000 !important;">Proveedor</h1>
             </div>
         </div>
     </div>

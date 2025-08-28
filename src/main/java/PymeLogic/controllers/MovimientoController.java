@@ -20,7 +20,7 @@ import java.time.format.DateTimeParseException;
 @Controller
 @RequestMapping("/movimientos")
 public class MovimientoController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(MovimientoController.class);
 
     @Autowired
@@ -33,81 +33,76 @@ public class MovimientoController {
             @RequestParam(required = false) String fecha,
             @RequestParam(required = false) String producto,
             Model model) {
+        Page<Movimiento> movimientosPage;
+        LocalDateTime fechaFiltro = null;
+
         try {
-            logger.debug("Iniciando listarMovimientos con parámetros: page={}, size={}, fecha={}, producto={}", 
-                        page, size, fecha, producto);
+            logger.debug("Iniciando listarMovimientos con parámetros: page={}, size={}, fecha={}, producto={}",
+                    page, size, fecha, producto);
 
             Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
-            Page<Movimiento> movimientosPage;
 
-            LocalDateTime fechaFiltro = null;
             if (fecha != null && !fecha.isEmpty()) {
                 logger.debug("Intentando parsear fecha: {}", fecha);
-                try {
-                    if (fecha.contains("T")) {
-                        // Formato ISO
+                if (fecha.contains("T")) {
+                    // Formato ISO
+                    try {
                         fechaFiltro = LocalDateTime.parse(fecha);
                         logger.debug("Fecha parseada en formato ISO: {}", fechaFiltro);
-                    } else {
-                        // Intentar formatos personalizados
-                        String[] patterns = {
+                    } catch (DateTimeParseException e) {
+                        logger.warn("No se pudo parsear la fecha en formato ISO: {}", e.getMessage());
+                    }
+                } else {
+                    // Intentar formatos personalizados
+                    String[] patterns = {
                             "yyyy-MM-dd HH:mm:ss",
                             "yyyy-MM-dd HH:mm",
                             "yyyy-MM-dd"
-                        };
-                        
-                        for (String pattern : patterns) {
-                            try {
-                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-                                if (pattern.equals("yyyy-MM-dd")) {
-                                    // Si solo es fecha, agregar hora 00:00:00
-                                    fechaFiltro = LocalDate.parse(fecha, formatter).atStartOfDay();
-                                } else {
-                                    fechaFiltro = LocalDateTime.parse(fecha, formatter);
-                                }
-                                logger.debug("Fecha parseada con patrón {}: {}", pattern, fechaFiltro);
-                                break;
-                            } catch (DateTimeParseException e) {
-                                logger.debug("No se pudo parsear la fecha con patrón {}: {}", pattern, e.getMessage());
+                    };
+
+                    for (String pattern : patterns) {
+                        try {
+                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+                            if (pattern.equals("yyyy-MM-dd")) {
+                                // Si solo es fecha, agregar hora 00:00:00
+                                fechaFiltro = LocalDate.parse(fecha, formatter).atStartOfDay();
+                            } else {
+                                fechaFiltro = LocalDateTime.parse(fecha, formatter);
                             }
+                            logger.debug("Fecha parseada con patrón {}: {}", pattern, fechaFiltro);
+                            break;
+                        } catch (DateTimeParseException e) {
+                            logger.debug("No se pudo parsear la fecha con patrón {}: {}", pattern, e.getMessage());
                         }
                     }
-                    
                     if (fechaFiltro == null) {
                         logger.warn("No se pudo parsear la fecha con ningún formato: {}", fecha);
                     }
-                } catch (Exception e) {
-                    logger.error("Error inesperado al parsear la fecha: {}", e.getMessage(), e);
                 }
             }
 
-            try {
-                logger.debug("Aplicando filtros de búsqueda");
-                if (producto != null && !producto.isEmpty() && fechaFiltro != null) {
-                    logger.debug("Buscando por producto '{}' y fecha {}", producto, fechaFiltro);
-                    movimientosPage = movimientoService.findByProductoNombreAndFecha(producto, fechaFiltro, pageable);
-                } else if (producto != null && !producto.isEmpty()) {
-                    logger.debug("Buscando solo por producto '{}'", producto);
-                    movimientosPage = movimientoService.findByProductoNombre(producto, pageable);
-                } else if (fechaFiltro != null) {
-                    logger.debug("Buscando solo por fecha {}", fechaFiltro);
-                    movimientosPage = movimientoService.findByFecha(fechaFiltro, pageable);
-                } else {
-                    logger.debug("No hay filtros, mostrando todos los movimientos");
-                    movimientosPage = movimientoService.findAll(pageable);
-                }
-                logger.debug("Búsqueda completada. Encontrados {} resultados", movimientosPage.getTotalElements());
-            } catch (Exception e) {
-                logger.error("Error al realizar la búsqueda: {}", e.getMessage(), e);
-                throw e;
+            logger.debug("Aplicando filtros de búsqueda");
+            if (producto != null && !producto.isEmpty() && fechaFiltro != null) {
+                logger.debug("Buscando por producto '{}' y fecha {}", producto, fechaFiltro);
+                movimientosPage = movimientoService.findByProductoNombreAndFecha(producto, fechaFiltro, pageable);
+            } else if (producto != null && !producto.isEmpty()) {
+                logger.debug("Buscando solo por producto '{}'", producto);
+                movimientosPage = movimientoService.findByProductoNombre(producto, pageable);
+            } else if (fechaFiltro != null) {
+                logger.debug("Buscando solo por fecha {}", fechaFiltro);
+                movimientosPage = movimientoService.findByFecha(fechaFiltro, pageable);
+            } else {
+                logger.debug("No hay filtros, mostrando todos los movimientos");
+                movimientosPage = movimientoService.findAll(pageable);
             }
+            logger.debug("Búsqueda completada. Encontrados {} resultados", movimientosPage.getTotalElements());
 
             // Agregar datos al modelo
             model.addAttribute("movimientos", movimientosPage.getContent());
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", movimientosPage.getTotalPages());
             model.addAttribute("totalItems", movimientosPage.getTotalElements());
-            
+
             // Agregar filtros seleccionados al modelo
             model.addAttribute("fecha", fecha);
             model.addAttribute("productoSeleccionado", producto);

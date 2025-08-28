@@ -47,6 +47,12 @@
             </div>
 
             <div class="mb-3">
+                <label for="codigoBarras" class="form-label">Código de Barras</label>
+                <input type="text" class="form-control" id="codigoBarras" name="codigoBarras"
+                       th:value="${producto != null ? producto.codigoBarras : ''}">
+            </div>
+
+            <div class="mb-3">
                 <label for="categoria" class="form-label">Categoría</label>
                 <input type="text" class="form-control" id="categoria" name="categoria"
                        th:value="${producto.categoria}">
