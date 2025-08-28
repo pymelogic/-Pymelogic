@@ -12,6 +12,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +27,9 @@ public class MovimientoController {
 
     @Autowired
     private MovimientoService movimientoService;
+
+    @Autowired
+    private Environment env;
 
     @GetMapping
     public String listarMovimientos(
@@ -112,7 +117,10 @@ public class MovimientoController {
             logger.error("Error al listar movimientos: {}", e.getMessage(), e);
             model.addAttribute("error", "Error al cargar los movimientos");
             model.addAttribute("message", e.getMessage());
-            model.addAttribute("trace", e.getStackTrace());
+            // Solo incluir el stack trace en desarrollo
+            if (env.acceptsProfiles(Profiles.of("dev", "development"))) {
+                model.addAttribute("trace", e.getStackTrace());
+            }
             return "error";
         }
     }
